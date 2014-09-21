@@ -382,12 +382,11 @@
 				$i = 0;
 				while($data = $db->fetch_array($query)) {
 					$username = $data['username'];
-					$date = $data['visit_date'];
 					
 					$profile_link = build_profile_link($username, intval($mybb->input['uid']), '_blank', 'if(window.opener) { window.opener.location = this.href; return false; }');
 				
-					if($date) {
-						$active = my_date('relative', $date);
+					if($data['visit_date']) {
+						$active = my_date('relative', $data['visit_date']);
 					}
 					else {
 						$active = $lang->profilevisits_never;
@@ -448,7 +447,7 @@
 	function profilevisits_verify_permissions ($allowed, $usergroup, $additionalgroups) {
 		// verify permissions, generate error page on fail. 
 		if (profilevisits_permissions($allowed, $usergroup, $additionalgroups)) {
-			return; 
+			return true; 
 		}
 		else {
 			error_no_permission();
