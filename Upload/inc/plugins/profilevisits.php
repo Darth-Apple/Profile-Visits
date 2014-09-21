@@ -351,6 +351,7 @@
 
 	function profilevisits_popup () {
 		global $lang, $templates, $db, $mybb, $session, $theme;
+		define("NO_ONLINE", 1);
 		
 		if ($mybb->input['action'] == "profilevisits") {
 			$lang->load("profilevisits");
@@ -503,7 +504,6 @@
 				else {
 					// delete profile visits
 					$db->delete_query("profilevisits_log", "profileID = ".(int)$uid);
-					$db->delete_query("profilevisits_cache", "profileID = ".(int)$uid);
 					redirect("member.php?action=profile&uid=".(int) $uid, $lang->profilevisits_delete_success);	
 				}
 			}
