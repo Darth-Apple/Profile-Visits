@@ -348,7 +348,6 @@
 
 	function profilevisits_popup () {
 		global $lang, $templates, $db, $mybb, $session, $theme;
-		$pagination = null;
 		$visits = null;		
 		define("NO_ONLINE", 1);
 		
@@ -363,11 +362,6 @@
 				
 				$rowsperpage = (int) $mybb->settings['profilevisits_numresults'];
 				if (empty($rowsperpage)) $rowsperpage = 5; // prevents SQL errors if users put non-numeric values in for this setting
-
-				$query = $db->simple_select("profilevisits_log", "COUNT(VID) AS visits", "(profileID =". (int) $profileID.")");
-				$totalvisits = $db->fetch_field($query, "visits");
-				$totalpages = ceil($totalvisits / $rowsperpage);
-				$currentpage = 1;
 
 				$query = $db->query("
 					SELECT username
@@ -420,8 +414,7 @@
 				eval("\$profilevisits = \"".$templates->get("profilevisits_popup", 1, 0)."\";");
 				echo $profilevisits;
 			}	
-		exit;			
-			
+		exit;				
 		}
 	}
 	
