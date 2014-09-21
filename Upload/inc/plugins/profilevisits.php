@@ -70,8 +70,6 @@
 				) 
 				".$db->build_create_table_collation().";"
 			); 
-			
-			
 		}
 		
 		$templates = array();
@@ -84,21 +82,20 @@
 		
 		$templates['profilevisits_popup'] = '
 <div class="modal">
-	<div style="overflow-y: auto; max-height: 400px;">
+	<div style="overflow-y: auto; max-height: 500px;">
 		<table cellspacing="{$theme[\'borderwidth\']}" cellpadding="{$theme[\'tablespace\']}" class="tborder" style="border-spacing: 0px; padding: 2px; -webkit-border-radius: 7px; -moz-border-radius: 7px; border-radius: 7px;">
-		<tr>
-			<td class="thead" colspan="2">
-				<div><strong>{$lang->profilevisits_of} {$profile_username}</strong></div>
-			</td>
-		</tr>
-		<tr>
-			<td class="tcat" colspan="2">
-				<div><strong>{$lang->profilevisits_thead}</strong></div>
-			</td>
-		</tr>		
-		
-		{$visits}
-{$moderation}
+			<tr>
+				<td class="thead" colspan="2">
+					<div><strong>{$lang->profilevisits_of} {$profile_username}</strong></div>
+				</td>
+			</tr>
+			<tr>
+				<td class="tcat" colspan="2">
+					<div><strong>{$lang->profilevisits_thead}</strong></div>
+				</td>
+			</tr>		
+			{$visits}
+			{$moderation}	
 		</table>
 	</div>
 </div>';
@@ -106,12 +103,12 @@
 		$templates['profilevisits_user'] = '
 <tr>
 	<td class="{$altbg}" width="1%">
-		<div class="buddy_avatar float_left"><img src="{$visitor[\'avatar\'][\'image\']}" alt="" {$visitor[\'avatar\'][\'width_height\']} style="margin-top: 3px;" /></div>
+		<div class="float_left"><img src="{$visitor[\'avatar\'][\'image\']}" alt="" {$visitor[\'avatar\'][\'width_height\']} style="margin-top: 3px; padding: 3px; border: 1px solid #ddd; background: #fff;" /></div>
 	</td>
 	<td class="{$altbg}">
 		{$profile_link}
 		<div class="buddy_action">
-			<span class="smalltext">{$active}<br /></span>
+			<span class="smalltext"><strong>{$lang->profilevisits_lastactive}</strong> {$active}<br /></span>
 		</div>
 	</td>
 </tr>
@@ -344,40 +341,48 @@
 		}
 		
 		$visit_count = my_number_format(intval($memprofile['profilevisits'] + $profile_increment));
-		$view_latest = '<a href="#" onclick="MyBB.popupWindow(\'misc.php?action=profilevisits&pid='.(int) $profileID.'\', null, true); return false;">'.$lang->profilevisits_viewlatest.'</a>';
+		$view_latest = '<a href="#" onclick="MyBB.popupWindow(\'misc.php?action=profilevisits&uid='.(int) $profileID.'\', null, true); return false;">'.$lang->profilevisits_viewlatest.'</a>';
 		
 		eval("\$profilevisits = \"".$templates->get("member_profilevisits")."\";"); 
 	} 
 
 	function profilevisits_popup () {
 		global $lang, $templates, $db, $mybb, $session, $theme;
+		$pagination = null;
+		$visits = null;		
 		define("NO_ONLINE", 1);
 		
 		if ($mybb->input['action'] == "profilevisits") {
 			$lang->load("profilevisits");
 			
-			if ((empty($mybb->input['pid'])) || ($mybb->request_method != "get")) {
+			if ((empty($mybb->input['uid'])) || ($mybb->request_method != "get")) {
 				error($lang->profilevisits_invalid_request);
 			}
 			else {
-				$visits = null;
+				$profileID = (int) $mybb->input['uid'];
+				
+				$rowsperpage = (int) $mybb->settings['profilevisits_numresults'];
+				if (empty($rowsperpage)) $rowsperpage = 5; // prevents SQL errors if users put non-numeric values in for this setting
+
+				$query = $db->simple_select("profilevisits_log", "COUNT(VID) AS visits", "(profileID =". (int) $profileID.")");
+				$totalvisits = $db->fetch_field($query, "visits");
+				$totalpages = ceil($totalvisits / $rowsperpage);
+				$currentpage = 1;
 
 				$query = $db->query("
 					SELECT username
 					FROM ".TABLE_PREFIX."users
-					WHERE uid = ". (int) $mybb->input['pid']);
+					WHERE uid = ". (int) $profileID);
 
 				while($data = $db->fetch_array($query)) {
 					$profile_username = $data['username']; // fetch username of profile
 				} 
 				
-				$profileID = (int) $mybb->input['pid'];
-
 				$query = $db->query("
 					SELECT p.uid, p.date AS visit_date, u.uid, u.avatar, u.username, u.avatardimensions
 					FROM ".TABLE_PREFIX."profilevisits_log p
 					LEFT JOIN " . TABLE_PREFIX . "users u ON p.uid = u.uid
-					WHERE (p.profileID =". (int) $profileID.") ORDER BY VID DESC LIMIT ".(int) $mybb->settings['profilevisits_numresults']
+					WHERE (p.profileID =". (int) $profileID.") ORDER BY VID DESC LIMIT ".(int) $rowsperpage
 				);
 					
 				$i = 0;
@@ -385,13 +390,13 @@
 					$username = $data['username'];
 					$date = $data['visit_date'];
 					
-					$profile_link = build_profile_link($username, intval($mybb->input['pid']), '_blank', 'if(window.opener) { window.opener.location = this.href; return false; }');
+					$profile_link = build_profile_link($username, intval($mybb->input['uid']), '_blank', 'if(window.opener) { window.opener.location = this.href; return false; }');
 				
 					if($date) {
-						$active = $lang->profilevisits_active." ".my_date('relative', $date);
+						$active = my_date('relative', $date);
 					}
 					else {
-						$active = $lang->profilevisits_active . $lang->profilevisits_never;
+						$active = $lang->profilevisits_never;
 					}
 
 					$visitor['avatar'] = format_avatar(htmlspecialchars_uni($data['avatar']), $data['avatardimensions'], '44x44');
@@ -463,10 +468,12 @@
 		$lang->load("profilevisits");
 		$uid = (int) $user;
 		$onclick = "onclick=' return confirm(\"".$lang->profilevisits_confirm."\");'";
-		$moderation = "<tr><td class='trow2' colspan='2'><strong>{$lang->profilevisits_moderation}</strong>";
+		
+		$moderation = 	'<tr><td class="trow2" colspan="2"><strong>'.$lang->profilevisits_moderation.'</strong>';
 		$moderation .= "[<a href='misc.php?action=profilevisits_clearcounter&uid={$uid}&postkey={$mybb->post_code}' {$onclick}>{$lang->profilevisits_clearcounter}</a>] ";
 		$moderation .= " [<a href='misc.php?action=profilevisits_clearvisits&uid={$uid}&postkey={$mybb->post_code}' {$onclick}>{$lang->profilevisits_clearvisits}</a>]";
 		$moderation .= "</td></tr>";
+		
 		return $moderation; 
 	}
 	
@@ -531,7 +538,7 @@
 				return true;
 			}
 		}
-		return false; 
+		return true; 
 	}	
 
 
