@@ -1,3 +1,5 @@
+NOTICE: THIS PLUGIN IS AN ALPHA PLUGIN, AND IS NOT GUARANTEED TO WORK PROPERLY ON YOUR FORUM. This plugin will be released officially on the MyBB mod site once it is finished. In the meantime, you can help test what's already done via this repository. 
+
 Profile Visits is a simple plugin that counts visits on user profiles and generates a jquery popup displaying a user's latest visits. This plugin is compatible with MyBB 1.8. 
 
 Installation: 
