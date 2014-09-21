@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU General Public License
     along with Profile Visits.  If not, see <http://www.gnu.org/licenses/>. */
-
+ 
 	if(!defined("IN_MYBB")) {
 	    die("Hacking Attempt.");
 	}	
@@ -25,6 +25,7 @@
 		$plugins->add_hook('misc_start', 'profilevisits_moderation');	
 		$plugins->add_hook('task_hourlycleanup', 'profilevisits_cleanup'); // To keep things as simple as possible, this plugin hooks into the hourly cleanup task to purge the profile visits cache. 
 	}
+	
 	function profilevisits_info() {
 		global $lang;
 		$lang->load("profilevisits");
@@ -38,6 +39,7 @@
 			"compatibility"	=> "18*"
 		);
 	}
+	
 	function profilevisits_install () {
 		global $lang, $db;
 		$lang->load("profilevisits");
@@ -77,7 +79,7 @@
 		$templates['member_profilevisits'] = '
 		<tr>
 			<td class="{$bg_color}"><strong>{$lang->profilevisits}</strong></td>
-			<td class="{$bg_color}">{$visit_count} ({$view_latest})</td>
+			<td class="{$bg_color}"><strong>{$visit_count}</strong> [{$view_latest}]</td>
 		</tr>'; 
 		
 		$templates['profilevisits_popup'] = '
@@ -103,10 +105,10 @@
 
 		$templates['profilevisits_user'] = '
 <tr>
-	<td class="{$bonline_alt}" width="1%">
+	<td class="{$altbg}" width="1%">
 		<div class="buddy_avatar float_left"><img src="{$visitor[\'avatar\'][\'image\']}" alt="" {$visitor[\'avatar\'][\'width_height\']} style="margin-top: 3px;" /></div>
 	</td>
-	<td class="{$bonline_alt}">
+	<td class="{$altbg}">
 		{$profile_link}
 		<div class="buddy_action">
 			<span class="smalltext">{$active}<br /></span>
@@ -144,7 +146,7 @@
 		);
 					
 		$settings[] = array(
-			'name' => 'profilevisits_honor_hidden_users',
+			'name' => 'profilevisits_honor_invisible',
 			'title' => $db->escape_string($lang->profilevisits_honor_hidden_users),
 			'description' => $db->escape_string($lang->profilevisits_honor_hidden_users_desc),
 			'optionscode' => 'yesno',
@@ -262,8 +264,9 @@
 	
 	
 	function profilevisits_parse () {
-		global $templates, $db, $mybb, $lang, $profilevisits, $bg_color, $session, $memprofile;
 		// parse profile visits
+		global $templates, $db, $mybb, $lang, $profilevisits, $bg_color, $session, $memprofile;
+		$profile_increment = 0; 
 		
 		if ($mybb->settings['profilevisits_enabled'] != 1) {
 			return; // Profile Visits is not enabled. 
@@ -281,9 +284,7 @@
 			$profileID = (int) $mybb->user['uid']; // user is viewing own profile. No need to adjust visits count. 
 		}
 		
-		if ($profileID != $mybb->user['uid']) {
-			$parse_invisible = profilevisits_honor_invisible ();
-		}	
+		$parse_invisible = profilevisits_parse_invisible ($mybb->user['invisible']);
 		
 		if ((profilevisits_permissions($mybb->settings['profilevisits_groups'], $mybb->user['usergroup'], $mybb->user['additionalgroups'])) && ($parse_invisible) && (profilevisits_log_own($profileID))) {
 			$query = $db->query("
@@ -298,6 +299,8 @@
 			
 			if (((time() - $result['date']) > ($mybb->settings['profilevisits_cachetime'] * 60)) || (!isset($result['date']))) {
 				$db->query("UPDATE ".TABLE_PREFIX."users SET profilevisits = profilevisits + 1 WHERE uid=".(int) $profileID); // increment counter
+				$profile_increment = 1;
+				
 				$array = array(
 					"date" => time(),
 					"profileID" => (int)$profileID,
@@ -318,7 +321,6 @@
 				$result['uid'] = $data['uid']; // fetch UID
 				$result['date'] = $data['date'];
 				$vid = $data['VID']; // visit ID
-				$result['IP'] = $data['IP'];
 			} 			
 			
 			if ((($result['uid'] != $mybb->user['uid'])) && ($mybb->user['uid'] != 0)) {
@@ -341,20 +343,20 @@
 				
 		}
 		
-		$visit_count = my_number_format(intval($memprofile['profilevisits']));
+		$visit_count = my_number_format(intval($memprofile['profilevisits'] + $profile_increment));
 		$view_latest = '<a href="#" onclick="MyBB.popupWindow(\'misc.php?action=profilevisits&pid='.(int) $profileID.'\', null, true); return false;">'.$lang->profilevisits_viewlatest.'</a>';
 		
 		eval("\$profilevisits = \"".$templates->get("member_profilevisits")."\";"); 
 	} 
 
 	function profilevisits_popup () {
-		global $lang, $templates, $db, $mybb, $session;
+		global $lang, $templates, $db, $mybb, $session, $theme;
 		
 		if ($mybb->input['action'] == "profilevisits") {
 			$lang->load("profilevisits");
-			// $lang->load("misc");
+			
 			if ((empty($mybb->input['pid'])) || ($mybb->request_method != "get")) {
-				// 
+				error($lang->profilevisits_invalid_request);
 			}
 			else {
 				$visits = null;
@@ -392,14 +394,14 @@
 					}
 
 					$visitor['avatar'] = format_avatar(htmlspecialchars_uni($data['avatar']), $data['avatardimensions'], '44x44');
-					$bonline_alt = alt_trow();
+					$altbg = alt_trow();
 					eval("\$visits .= \"".$templates->get("profilevisits_user")."\";");			
 					$i++;
 				} 
 				
 				if ($i == 0) {
-					$bonline_alt = alt_trow();
-					$visits = "<tr><td colspan='2' class='{$bonline_alt}'>{$lang->profilevisits_nothing}</td></tr>";
+					$altbg = alt_trow();
+					$visits = "<tr><td colspan='2' class='{$altbg}'>{$lang->profilevisits_nothing}</td></tr>";
 				}
 				
 				if (profilevisits_permissions($mybb->settings['profilevisits_modgroups'], $mybb->user['usergroup'], $mybb->user['additionalgroups'])) {
@@ -454,20 +456,6 @@
 		}
 	}
 	
-
-	function profilevisits_honor_invisible () {
-		// this function checks whether a user can be logged based on the plugin's "honor_hidden" setting. If this setting is enabled, invisible users won't be logged. 
-		global $mybb;
-		if (!empty($mybb->user['uid'])) {
-			if (($mybb->user['hidden'] == 1) && ($mybb->settings['profilevisits_honor_hidden'] == 1)) {
-				return false; 
-			}
-			else {
-				return true;
-			}
-		}
-		return false; 
-	}
 	
 	function profilevisits_modlinks ($user) {
 		global $mybb, $lang;
@@ -501,6 +489,7 @@
 						"profilevisits" => 0,
 					);
 					$db->update_query("users", $array, "uid = ". (int)$uid);
+					$db->delete_query("profilevisits_cache", "profileID = ".(int)$uid);
 					redirect("member.php?action=profile&uid=".(int) $uid, $lang->profilevisits_clear_success);		
 				}
 			}
@@ -514,6 +503,7 @@
 				else {
 					// delete profile visits
 					$db->delete_query("profilevisits_log", "profileID = ".(int)$uid);
+					$db->delete_query("profilevisits_cache", "profileID = ".(int)$uid);
 					redirect("member.php?action=profile&uid=".(int) $uid, $lang->profilevisits_delete_success);	
 				}
 			}
@@ -528,6 +518,21 @@
 		}
 		return true;
 	}
+
+
+	function profilevisits_parse_invisible ($invisible) {
+		// this function checks whether a user can be logged based on the plugin's "honor_hidden" setting. If this setting is enabled, invisible users won't be logged. 
+		global $mybb;	
+		if (!empty($mybb->user['uid'])) {
+			if ((intval($invisible) == 1) && ($mybb->settings['profilevisits_honor_invisible'] == 1)) {
+				return false; 
+			}
+			else {
+				return true;
+			}
+		}
+		return false; 
+	}	
 
 
 	function profilevisits_cleanup ($args) {

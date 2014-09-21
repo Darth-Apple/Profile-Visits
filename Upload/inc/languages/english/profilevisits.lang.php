@@ -13,4 +13,5 @@ $l['profilevisits_no_uid'] = "Fatal error: no user ID defined. Please try again.
 $l['profilevisits_confirm'] = "Are you sure you want to perform this moderator action? This cannot be undone. ";
 $l['profilevisits_delete_success'] = "You have successfully cleared the profile visits log for this user. You will now be returned to their profile. ";
 $l['profilevisits_clear_success'] = "You have successfully reset the profile visits counter for this user. You will now be returned to their profile. ";
+$l['profilevisits_invalid_request'] = "Error: invalid request. Please try again. ";
 
