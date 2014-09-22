@@ -83,7 +83,7 @@
 		$templates['profilevisits_popup'] = '
 <div class="modal">
 	<div style="overflow-y: auto; max-height: 500px;">
-		<table cellspacing="{$theme[\'borderwidth\']}" cellpadding="{$theme[\'tablespace\']}" class="tborder" style="border-spacing: 0px; padding: 2px; -webkit-border-radius: 7px; -moz-border-radius: 7px; border-radius: 7px;">
+		<table cellspacing="{$theme[\'borderwidth\']}" cellpadding="4" class="tborder" style="border-spacing: 0px; padding: 2px; -webkit-border-radius: 7px; -moz-border-radius: 7px; border-radius: 7px;">
 			<tr>
 				<td class="thead" colspan="2">
 					<div><strong>{$lang->profilevisits_of} {$profile_username}</strong></div>
@@ -125,7 +125,7 @@
 			'description' => $db->escape_string($lang->profile_visits_desc),
 			'disporder' => $rows+3,
 			'isdefault' => 0
-		); // yes, we're escaping data from language strings, just in case someone decides to put something suspicious into a language translation file. 
+		); 
 		
 		$group['gid'] = $db->insert_query("settinggroups", $setting_group); // inserts new group for settings into the database. 
 		
@@ -165,12 +165,23 @@
 		);				
 	
 		$settings[] = array(
+			'name' => 'profilevisits_numresults',
+			'title' => $db->escape_string($lang->profilevisits_numresults),
+			'description' => $db->escape_string($lang->profilevisits_numresults_desc),
+			'optionscode' => 'text',
+			'value' => '5',
+			'disporder' => 4,
+			'isdefault' => 0,
+			'gid' => $group['gid']
+		);	
+	
+		$settings[] = array(
 			'name' => 'profilevisits_groups',
 			'title' => $db->escape_string($lang->profilevisits_groups),
 			'description' => $db->escape_string($lang->profilevisits_groups_desc),
 			'optionscode' => 'groupselect',
 			'value' => '-1',
-			'disporder' => 4,
+			'disporder' => 5,
 			'isdefault' => 0,
 			'gid' => $group['gid']
 		);
@@ -181,21 +192,10 @@
 			'description' => $db->escape_string($lang->profilevisits_modgroups_desc),
 			'optionscode' => 'groupselect',
 			'value' => '3,4',
-			'disporder' => 5,
-			'isdefault' => 0,
-			'gid' => $group['gid']
-		);		
-		
-		$settings[] = array(
-			'name' => 'profilevisits_numresults',
-			'title' => $db->escape_string($lang->profilevisits_numresults),
-			'description' => $db->escape_string($lang->profilevisits_numresults_desc),
-			'optionscode' => 'text',
-			'value' => '6',
 			'disporder' => 6,
 			'isdefault' => 0,
 			'gid' => $group['gid']
-		);
+		);		
 		
 		$settings[] = array(
 			'name' => 'profilevisits_cachetime',
@@ -206,7 +206,18 @@
 			'disporder' => 7,
 			'isdefault' => 0,
 			'gid' => $group['gid']
-		);		
+		);	
+		
+		$settings[] = array(
+			'name' => 'profilevisits_expire',
+			'title' => $db->escape_string($lang->profilevisits_expire),
+			'description' => $db->escape_string($lang->profilevisits_expire_desc),
+			'optionscode' => 'text',
+			'value' => '30',
+			'disporder' => 8,
+			'isdefault' => 0,
+			'gid' => $group['gid']
+		);				
 		
 		foreach($settings as $array => $setting) {
 			$db->insert_query("settings", $setting);
@@ -288,7 +299,7 @@
 				SELECT uid, VID, date
 				FROM ".TABLE_PREFIX."profilevisits_cache
 				WHERE profileID = ".(int) $profileID." AND (uid = ".(int) $mybb->user['uid'].") ORDER BY VID DESC LIMIT 1;
-			"); // Check the cache to ensure that a user cannot raise a user's statistics by rapidly reloading the page. 
+			"); // Check the cache to ensure that a user cannot raise a user's statistics by rapidly reloading the page. If a cached result exists within the time interval specified, this plugin will not increment the user's view count. 
 			
 			while($data = $db->fetch_array($query)) {		
 				$result['date'] = $data['date'];
@@ -296,7 +307,7 @@
 			
 			if (((time() - $result['date']) > ($mybb->settings['profilevisits_cachetime'] * 60)) || (!isset($result['date']))) {
 				$db->query("UPDATE ".TABLE_PREFIX."users SET profilevisits = profilevisits + 1 WHERE uid=".(int) $profileID); // increment counter
-				$profile_increment = 1;
+				$profile_increment = 1; // The current view count is loaded from $memprofile, which is parsed before this function is called. This allows Profile Visits to record the actual view count including the current visit. 
 				
 				$array = array(
 					"date" => time(),
@@ -312,7 +323,7 @@
 				SELECT uid, VID, date
 				FROM ".TABLE_PREFIX."profilevisits_log
 				WHERE profileID = ".(int) $profileID." ORDER BY VID DESC LIMIT 1;
-			"); // ensures that the same user is not inserted multiple times in a row. 
+			"); // ensures that the same user is not inserted multiple times in a row. If the user is not listed as the most recent visitor, the user will be entered into the log. If the user is listed as the most recent visitor, their visit date/time will be updated instead. 
 	
 			while($data = $db->fetch_array($query)) {
 				$result['uid'] = $data['uid']; // fetch UID
@@ -324,7 +335,6 @@
 				$array = array(
 					"date" => time(),
 					"profileID" => (int)$profileID,
-					// "IP" => $db->escape_binary($session->packedip),
 					"uid" => (int) $mybb->user['uid']
 				);
 						
@@ -413,7 +423,7 @@
 				eval("\$profilevisits = \"".$templates->get("profilevisits_popup", 1, 0)."\";");
 				echo $profilevisits;
 			}	
-		exit;				
+			exit;				
 		}
 	}
 	
@@ -535,8 +545,16 @@
 
 
 	function profilevisits_cleanup ($args) {
-		// delete old results cached into the profile visits log
+		// delete old cache results and expires logs
 		global $db, $mybb;		
-		$cutoff = (time() - ((int) $mybb->settings['profilevisits_cachetime'] * 60)); 
-		$db->delete_query("profilevisits_cache", "date < ".(int) $cutoff.""); // delete old cached results
+		$cache_cutoff = (time() - ((int) $mybb->settings['profilevisits_cachetime'] * 60)); 
+		$db->delete_query("profilevisits_cache", "date < ".(int) $cache_cutoff.""); // delete old cached results
+		
+		$expire = (int) $mybb->settings['profilevisits_expire'];
+		if(empty($expire)) $expire = 30; // default to 30 days
+		
+		$expire = (time() - ($expire * 60 * 60 * 24)); // convert to seconds
+		
+		$db->delete_query("profilevisits_log", "date < ".(int) $expire.""); 
+		// Notice: Because this plugin does not currently support pagination, only a number of visits defined by $mybb->['profilevisits_numresults'] setting are actually required to be stored for each unique profileID. For that reason, this is technically not the most efficient means of managing the size of the profilevisits_log table. A future version of this plugin will either include features to use data that is currently unneeded (such as pagination for visits), or a better method of purging unneeded data. For now, this solution at least prevents the profilevisits_log table from growing unreasonably large. 
 	}
