@@ -1,21 +1,31 @@
-NOTICE: THIS PLUGIN IS AN ALPHA/PREVIEW PLUGIN, AND IS NOT GUARANTEED TO WORK PROPERLY ON YOUR FORUM. Profile Visits will be released officially on the MyBB mod site once it is finished. In the meantime, you can help test what's already done via this repository. 
+NOTICE: THIS PLUGIN IS A BETA RELEASE, AND IS NOT GUARANTEED TO WORK PROPERLY ON YOUR FORUM. Profile Visits will be released officially on the MyBB mod site once it is finished. In the meantime, you can help test what's already done via this repository. 
 
-Latest Visitors on Profiles is a simple plugin that counts and logs visits to user profiles. This plugin is compatible with MyBB 1.8. 
+Latest Visitors on Profiles is a simple plugin for MyBB 1.8 that adds a profile visits counter and a latest visits log to all profiles on the forum. 
 
-Installation: 
-	- Upload the contents of the /Upload folder to your MyBB root folder
-	- Install and activate "Latest Visitors on Profiles" via the ACP
+MyBB version: 1.8.X
+Plugin version: 1.0 beta 1
+Author: Darth-Apple
+License: GNU GPL, version 3. 
 
 Key features
-	- Profile visit counting
+	- Profile visits counting
 	- Profile counter caching (prevents users from rapidly reloading a profile to bump their visit count)
-	- Usergroup based logging
+	- Usergroup based permissions
 	- Ability to reset the counter and to purge visits
 	- Jquery popup featuring the latest profile visits
 	- Ability to hide invisible users from the profile visits log
 	- Ability to configure which usergroups are logged
 	- Ability to configure whether visits to users' own profiles are counted. 
 	
+Installation: 
+	- Upload the contents of the /Upload folder to your MyBB root folder.
+	- Install and activate "Latest Visitors on Profiles" via the ACP. 
+	
+Configuration & Notes: 
+	- Once this plugin is installed an activated, you may configure this plugin via ACP -> Configuration -> "Latest Visitors on Profile"
+	- Note that if the guest usergroup is enabled for profile visits logging, only the counter will be incremented. Guest users will never display explicitly in the latest visits log. 
+	- Visits are automatically deleted after a specified interval, which is set to 30 days by default. This is to prevent the database from growing massive from old visitor logs. You can set this expiration interval in the plugin settings. (ACP -> Configuration -> "Latest Visitors on Profile")
+
 License and Copyright: 
 
  /*     This file is part of Profile Visits

@@ -1,6 +1,7 @@
 <?php
 
- /*     This file is part of Profile Visits
+ /*     
+	This file is part of Profile Visits
 
     Profile Visits is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -13,7 +14,10 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Profile Visits.  If not, see <http://www.gnu.org/licenses/>. */
+    along with Profile Visits.  If not, see <http://www.gnu.org/licenses/>.
+    
+    Plugin Author: Darth-Apple
+     */
  
 	if(!defined("IN_MYBB")) {
 	    die("Hacking Attempt.");
@@ -108,7 +112,7 @@
 	</td>
 	<td class="{$altbg}">
 		{$profile_link}
-		<div class="buddy_action">
+		<div>
 			<span class="smalltext"><strong>{$lang->profilevisits_lastactive}</strong> {$active}<br /></span>
 		</div>
 	</td>
