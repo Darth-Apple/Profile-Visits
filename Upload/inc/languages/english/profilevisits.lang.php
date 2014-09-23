@@ -15,4 +15,4 @@ $l['profilevisits_delete_success'] = "You have successfully cleared the profile 
 $l['profilevisits_clear_success'] = "You have successfully reset the profile visits counter for this user. You will now be returned to their profile. ";
 $l['profilevisits_invalid_request'] = "Error: invalid request. Please try again. ";
 $l['profilevisits_interval_days'] = " days";
-$l['profilevisits_interval_last'] = "last ";
+$l['profilevisits_interval_last'] = "from last ";

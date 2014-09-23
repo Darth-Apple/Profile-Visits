@@ -96,7 +96,7 @@
 			</tr>
 			<tr>
 				<td class="tcat" colspan="2">
-					<div><strong>{$lang->profilevisits_thead} ({$interval})</strong></div>
+					<div><span style="font-weight: bold;" title="({$interval})">{$lang->profilevisits_thead}</span></div>
 				</td>
 			</tr>		
 			{$visits}
