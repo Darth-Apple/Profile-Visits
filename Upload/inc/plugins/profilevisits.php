@@ -84,7 +84,7 @@
 		$templates['profilevisits_popup'] = '
 <div class="modal">
 	<div style="overflow-y: auto; max-height: 500px;">
-		<table cellspacing="{$theme[\'borderwidth\']}" cellpadding="4" class="tborder" style="border-spacing: 0px; padding: 2px; -webkit-border-radius: 7px; -moz-border-radius: 7px; border-radius: 7px;">
+		<table cellspacing="{$theme[\'borderwidth\']}" cellpadding="3" class="tborder" style="border-spacing: 0px; padding: 2px; -webkit-border-radius: 7px; -moz-border-radius: 7px; border-radius: 7px;">
 			<tr>
 				<td class="thead" colspan="2">
 					<div><strong>{$lang->profilevisits_of} {$profile_username}</strong></div>
@@ -92,7 +92,7 @@
 			</tr>
 			<tr>
 				<td class="tcat" colspan="2">
-					<div><strong>{$lang->profilevisits_thead}</strong></div>
+					<div><strong>{$lang->profilevisits_thead} ({$interval})</strong></div>
 				</td>
 			</tr>		
 			{$visits}
@@ -103,8 +103,8 @@
 
 		$templates['profilevisits_user'] = '
 <tr>
-	<td class="{$altbg}" width="1%">
-		<div class="float_left"><img src="{$visitor[\'avatar\'][\'image\']}" alt="" {$visitor[\'avatar\'][\'width_height\']} style="margin-top: 3px; padding: 3px; border: 1px solid #ddd; background: #fff;" /></div>
+	<td class="{$altbg}" width="1%" style="vertical-align: middle;">
+		<div class="float_left"><img src="{$visitor[\'avatar\'][\'image\']}" alt="" height="44px" width="44px" style="margin-top: 3px; padding: 3px; border: 1px solid #ddd; background: #fff;" /></div>
 	</td>
 	<td class="{$altbg}">
 		{$profile_link}
@@ -420,6 +420,10 @@
 				else {
 					$moderation = null;
 				}
+				
+				$expire = my_number_format((int) $mybb->settings['profilevisits_expire']);
+				if(empty($expire)) $expire = 30; // default to 30 days
+				$interval = $lang->profilevisits_interval_last.$expire.$lang->profilevisits_interval_days;
 				
 				eval("\$profilevisits = \"".$templates->get("profilevisits_popup", 1, 0)."\";");
 				echo $profilevisits;
