@@ -23,7 +23,8 @@
 		$plugins->add_hook("member_profile_end", "profilevisits_parse");
 		$plugins->add_hook('misc_start', 'profilevisits_popup');
 		$plugins->add_hook('misc_start', 'profilevisits_moderation');	
-		$plugins->add_hook('task_hourlycleanup', 'profilevisits_cleanup'); // To keep things as simple as possible, this plugin hooks into the hourly cleanup task to purge the profile visits cache. 
+		$plugins->add_hook('task_hourlycleanup', 'profilevisits_cleanup_cache'); // clean cache
+		$plugins->add_hook('task_dailycleanup_end', 'profilevisits_cleanup_visits'); // clear expired visits
 	}
 	
 	function profilevisits_info() {
@@ -544,17 +545,24 @@
 	}	
 
 
-	function profilevisits_cleanup ($args) {
-		// delete old cache results and expires logs
+	function profilevisits_cleanup_cache ($args) {
+		// deletes expired cache results
 		global $db, $mybb;		
 		$cache_cutoff = (time() - ((int) $mybb->settings['profilevisits_cachetime'] * 60)); 
 		$db->delete_query("profilevisits_cache", "date < ".(int) $cache_cutoff.""); // delete old cached results
-		
+	}
+	
+	
+	
+	function profilevisits_cleanup_visits ($args) {
+		// Deletes expired logs
+		global $db, $mybb;		
+
 		$expire = (int) $mybb->settings['profilevisits_expire'];
 		if(empty($expire)) $expire = 30; // default to 30 days
 		
 		$expire = (time() - ($expire * 60 * 60 * 24)); // convert to seconds
 		
 		$db->delete_query("profilevisits_log", "date < ".(int) $expire.""); 
-		// Notice: Because this plugin does not currently support pagination, only a number of visits defined by $mybb->['profilevisits_numresults'] setting are actually required to be stored for each unique profileID. For that reason, this is technically not the most efficient means of managing the size of the profilevisits_log table. A future version of this plugin will either include features to use data that is currently unneeded (such as pagination for visits), or a better method of purging unneeded data. For now, this solution at least prevents the profilevisits_log table from growing unreasonably large. 
+		// Note: This is necessary because otherwise, the visits table would grow indefinitely large. There are technically better ways to handle this, but the current method of data removal is simple and at least prevents the table from growing unreasonably large. 
 	}
