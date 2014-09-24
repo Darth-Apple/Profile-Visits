@@ -15,6 +15,7 @@ $l['profilevisits_cachetime'] = "Profile counter cache interval (in minutes)";
 $l['profilevisits_cachetime_desc'] = "Multiple visits from a single user to the same profile will not be counted more than once within the specified interval. This is to prevent users from rapidly reloading pages to bump their profile statistics. The default value is 15 minutes. ";
 $l['profilevisits_log_own'] = "Log visits to user's own profile? ";
 $l['profilevisits_log_own_desc'] = "If enabled, this plugin will count and log visits to a user's own profile. By default, this setting is disabled. ";
-
 $l['profilevisits_expire'] = "Visit expiration interval (in days)";
 $l['profilevisits_expire_desc'] = "Old visits are automatically expired and purged to save database space. The default expiration time is 30 days. For larger forums, it may be ideal to lower this expiration time. ";
+$l['profilevisits_enable_count'] = "Display visits counter on profiles? ";
+$l['profilevisits_enable_count_desc'] = "If enabled, the visitor count will be displayed on user profiles.  ";

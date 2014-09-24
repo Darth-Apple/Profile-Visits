@@ -16,7 +16,11 @@
     You should have received a copy of the GNU General Public License
     along with Profile Visits.  If not, see <http://www.gnu.org/licenses/>.
     
-    Plugin Author: Darth-Apple
+    MyBB version: 1.8.X
+	Plugin version: 1.0 beta 2
+	Author: Darth-Apple
+	License: GNU GPL, version 3
+	*  
      */
  
 	if(!defined("IN_MYBB")) {
@@ -29,6 +33,7 @@
 		$plugins->add_hook('misc_start', 'profilevisits_moderation');	
 		$plugins->add_hook('task_hourlycleanup', 'profilevisits_cleanup_cache'); // clean cache
 		$plugins->add_hook('task_dailycleanup_end', 'profilevisits_cleanup_visits'); // clear expired visits
+		$plugins->add_hook('xmlhttp', 'profilevisits_ajax');
 	}
 	
 	function profilevisits_info() {
@@ -78,12 +83,11 @@
 		}
 		
 		$templates = array();
-		
 		$templates['member_profilevisits'] = '
-		<tr>
-			<td class="{$bg_color}"><strong>{$lang->profilevisits}</strong></td>
-			<td class="{$bg_color}"><strong>{$visit_count}</strong> [{$view_latest}]</td>
-		</tr>'; 
+<tr>
+		<td class="{$bg_color}"><strong>{$lang->profilevisits}</strong></td>
+		<td class="{$bg_color}"><strong>{$visit_count}</strong> [{$view_latest}]</td>
+</tr>'; 
 		
 		$templates['profilevisits_popup'] = '
 <div class="modal">
@@ -96,7 +100,7 @@
 			</tr>
 			<tr>
 				<td class="tcat" colspan="2">
-					<div><span style="font-weight: bold;" title="({$interval})">{$lang->profilevisits_thead}</span></div>
+					<div style="display: inline; float: left;"><span style="font-weight: bold;" title="({$interval})">{$lang->profilevisits_thead}</span></div><div style="display: inline; " class="float_right">{$loadmore}</div>
 				</td>
 			</tr>		
 			{$visits}
@@ -106,7 +110,7 @@
 </div>';
 
 		$templates['profilevisits_user'] = '
-<tr>
+<tr id="visit_{$i}" class="profileVisit">
 	<td class="{$altbg}" width="1%" style="vertical-align: middle;">
 		<div class="float_left"><img src="{$visitor[\'avatar\'][\'image\']}" alt="" height="44px" width="44px" style="margin-top: 3px; padding: 3px; border: 1px solid #ddd; background: #fff;" /></div>
 	</td>
@@ -135,7 +139,6 @@
 		$group['gid'] = $db->insert_query("settinggroups", $setting_group); // inserts new group for settings into the database. 
 		
 		$settings = array();
-		
 		$settings[] = array(
 			'name' => 'profilevisits_enabled',
 			'title' => $db->escape_string($lang->profilevisits_enable),
@@ -146,39 +149,28 @@
 			'isdefault' => 0,
 			'gid' => $group['gid']
 		);
-					
-		$settings[] = array(
-			'name' => 'profilevisits_honor_invisible',
-			'title' => $db->escape_string($lang->profilevisits_honor_hidden_users),
-			'description' => $db->escape_string($lang->profilevisits_honor_hidden_users_desc),
+		
+			$settings[] = array(
+			'name' => 'profilevisits_enable_count',
+			'title' => $db->escape_string($lang->profilevisits_enable_count),
+			'description' => $db->escape_string($lang->profilevisits_enable_count_desc),
 			'optionscode' => 'yesno',
-			'value' => '0',
+			'value' => '1',
 			'disporder' => 2,
-			'isdefault' => 0,			
+			'isdefault' => 0,
 			'gid' => $group['gid']
 		);		
 		
-		$settings[] = array(
-			'name' => 'profilevisits_log_own',
-			'title' => $db->escape_string($lang->profilevisits_log_own),
-			'description' => $db->escape_string($lang->profilevisits_log_own_desc),
-			'optionscode' => 'yesno',
-			'value' => '0',
-			'disporder' => 3,
-			'isdefault' => 0,			
-			'gid' => $group['gid']
-		);				
-	
 		$settings[] = array(
 			'name' => 'profilevisits_numresults',
 			'title' => $db->escape_string($lang->profilevisits_numresults),
 			'description' => $db->escape_string($lang->profilevisits_numresults_desc),
 			'optionscode' => 'text',
 			'value' => '5',
-			'disporder' => 4,
+			'disporder' => 3,
 			'isdefault' => 0,
 			'gid' => $group['gid']
-		);	
+		);			
 	
 		$settings[] = array(
 			'name' => 'profilevisits_groups',
@@ -186,7 +178,7 @@
 			'description' => $db->escape_string($lang->profilevisits_groups_desc),
 			'optionscode' => 'groupselect',
 			'value' => '-1',
-			'disporder' => 5,
+			'disporder' => 4,
 			'isdefault' => 0,
 			'gid' => $group['gid']
 		);
@@ -197,10 +189,32 @@
 			'description' => $db->escape_string($lang->profilevisits_modgroups_desc),
 			'optionscode' => 'groupselect',
 			'value' => '3,4',
-			'disporder' => 6,
+			'disporder' => 5,
 			'isdefault' => 0,
 			'gid' => $group['gid']
 		);		
+		
+		$settings[] = array(
+			'name' => 'profilevisits_log_own',
+			'title' => $db->escape_string($lang->profilevisits_log_own),
+			'description' => $db->escape_string($lang->profilevisits_log_own_desc),
+			'optionscode' => 'yesno',
+			'value' => '0',
+			'disporder' => 6,
+			'isdefault' => 0,			
+			'gid' => $group['gid']
+		);	
+					
+		$settings[] = array(
+			'name' => 'profilevisits_honor_invisible',
+			'title' => $db->escape_string($lang->profilevisits_honor_hidden_users),
+			'description' => $db->escape_string($lang->profilevisits_honor_hidden_users_desc),
+			'optionscode' => 'yesno',
+			'value' => '0',
+			'disporder' => 7,
+			'isdefault' => 0,			
+			'gid' => $group['gid']
+		);									
 		
 		$settings[] = array(
 			'name' => 'profilevisits_cachetime',
@@ -208,7 +222,7 @@
 			'description' => $db->escape_string($lang->profilevisits_cachetime_desc),
 			'optionscode' => 'text',
 			'value' => '15',
-			'disporder' => 7,
+			'disporder' => 8,
 			'isdefault' => 0,
 			'gid' => $group['gid']
 		);	
@@ -219,7 +233,7 @@
 			'description' => $db->escape_string($lang->profilevisits_expire_desc),
 			'optionscode' => 'text',
 			'value' => '30',
-			'disporder' => 8,
+			'disporder' => 9,
 			'isdefault' => 0,
 			'gid' => $group['gid']
 		);				
@@ -279,14 +293,12 @@
 	function profilevisits_parse () {
 		// parse profile visits
 		global $templates, $db, $mybb, $lang, $profilevisits, $bg_color, $session, $memprofile;
-		$profile_increment = 0; 
-		
-		if ($mybb->settings['profilevisits_enabled'] != 1) {
-			return; // Profile Visits is not enabled. 
-		}
-		
 		$lang->load("profilevisits");
 		
+		$profile_increment = 0; 
+		$visit_count = null;
+		$view_latest = null;
+	
 		if ($bg_color == "trow2") $bg_color = "trow1";
 		
 		if ($mybb->input['uid']) {
@@ -300,91 +312,105 @@
 		$parse_invisible = profilevisits_parse_invisible ($mybb->user['invisible']);
 		
 		if ((profilevisits_permissions($mybb->settings['profilevisits_groups'], $mybb->user['usergroup'], $mybb->user['additionalgroups'])) && ($parse_invisible) && (profilevisits_log_own($profileID))) {
-			$query = $db->query("
-				SELECT uid, VID, date
-				FROM ".TABLE_PREFIX."profilevisits_cache
-				WHERE profileID = ".(int) $profileID." AND (uid = ".(int) $mybb->user['uid'].") ORDER BY VID DESC LIMIT 1;
-			"); // Check the cache to ensure that a user cannot raise a user's statistics by rapidly reloading the page. If a cached result exists within the time interval specified, this plugin will not increment the user's view count. 
+			if ($mybb->settings['profilevisits_enable_count'] == 1) {
+				$query = $db->query("
+					SELECT uid, VID, date
+					FROM ".TABLE_PREFIX."profilevisits_cache
+					WHERE profileID = ".(int) $profileID." AND (uid = ".(int) $mybb->user['uid'].") ORDER BY VID DESC LIMIT 1;
+				"); 
 			
-			while($data = $db->fetch_array($query)) {		
-				$result['date'] = $data['date'];
-			} 
+				while($data = $db->fetch_array($query)) {		
+					$result['date'] = $data['date'];
+				} 
 			
-			if (((time() - $result['date']) > ($mybb->settings['profilevisits_cachetime'] * 60)) || (!isset($result['date']))) {
-				$db->query("UPDATE ".TABLE_PREFIX."users SET profilevisits = profilevisits + 1 WHERE uid=".(int) $profileID); // increment counter
-				$profile_increment = 1; // The current view count is loaded from $memprofile, which is parsed before this function is called. This allows Profile Visits to record the actual view count including the current visit. 
-				
-				$array = array(
-					"date" => time(),
-					"profileID" => (int)$profileID,
-					"IP" => $db->escape_binary($session->packedip),
-					"uid" => (int) $mybb->user['uid']
-				);
-							
-				$db->insert_query("profilevisits_cache", $array); // insert new result into cache
+				if (((time() - $result['date']) > ($mybb->settings['profilevisits_cachetime'] * 60)) || (!isset($result['date']))) {
+					$db->query("UPDATE ".TABLE_PREFIX."users SET profilevisits = profilevisits + 1 WHERE uid=".(int) $profileID); // increment counter
+					$profile_increment = 1; // The current view count is loaded from $memprofile, which is parsed before this function is called. This allows Profile Visits to record the actual view count including the current visit. 
+					
+					$array = array(
+						"date" => time(),
+						"profileID" => (int)$profileID,
+						"IP" => $db->escape_binary($session->packedip),
+						"uid" => (int) $mybb->user['uid']
+					);
+								
+					$db->insert_query("profilevisits_cache", $array); // insert new result into cache
+				}
 			}
 			
 			$query = $db->query("
 				SELECT uid, VID, date
 				FROM ".TABLE_PREFIX."profilevisits_log
 				WHERE profileID = ".(int) $profileID." ORDER BY VID DESC LIMIT 1;
-			"); // ensures that the same user is not inserted multiple times in a row. If the user is not listed as the most recent visitor, the user will be entered into the log. If the user is listed as the most recent visitor, their visit date/time will be updated instead. 
+			"); 
 	
 			while($data = $db->fetch_array($query)) {
-				$result['uid'] = $data['uid']; // fetch UID
+				$result['uid'] = $data['uid']; 
 				$result['date'] = $data['date'];
-				$vid = $data['VID']; // visit ID
+				$vid = $data['VID']; 
 			} 			
-			
+		
 			if ((($result['uid'] != $mybb->user['uid'])) && ($mybb->user['uid'] != 0)) {
 				$array = array(
 					"date" => time(),
 					"profileID" => (int)$profileID,
 					"uid" => (int) $mybb->user['uid']
 				);
-						
+					
 				$db->insert_query("profilevisits_log", $array);
 			}
 			else {
 				$array = array(
-					"date" => time(),
+					"date" => time()
 				);
-				
+			
 				$db->update_query("profilevisits_log", $array, "VID = ". (int)$vid);						
-			}		
-				
+			}			
 		}
 		
-		$visit_count = my_number_format(intval($memprofile['profilevisits'] + $profile_increment));
+		if ($mybb->settings['profilevisits_enable_count'] == 1) {
+			$visit_count = my_number_format(intval($memprofile['profilevisits'] + $profile_increment));
+		}
+
 		$view_latest = '<a href="#" onclick="MyBB.popupWindow(\'misc.php?action=profilevisits&uid='.(int) $profileID.'\', null, true); return false;">'.$lang->profilevisits_viewlatest.'</a>';
+		
 		
 		eval("\$profilevisits = \"".$templates->get("member_profilevisits")."\";"); 
 	} 
 
+	
 	function profilevisits_popup () {
 		global $lang, $templates, $db, $mybb, $session, $theme;
-		$visits = null;		
-		define("NO_ONLINE", 1);
-		
+		define("NO_ONLINE", 1);	
+			
 		if ($mybb->input['action'] == "profilevisits") {
+			
 			$lang->load("profilevisits");
 			
 			if ((empty($mybb->input['uid'])) || ($mybb->request_method != "get")) {
-				error($lang->profilevisits_invalid_request);
+				error($lang->profilevisits_invalid_request); // invalid request, generate error page. 
 			}
+			
+			$visits = null;		
+			$loadmore = null;
+			$profileID = (int) $mybb->input['uid'];		
+			$i = 0;
+			$moderation = null;		
+			$rowsperpage = (int) $mybb->settings['profilevisits_numresults'];
+			$expire = my_number_format((int) $mybb->settings['profilevisits_expire']);
+			$interval = $lang->profilevisits_interval_last.$expire.$lang->profilevisits_interval_days;	
+			
+			if (empty($rowsperpage)) $rowsperpage = 5; if(empty($expire)) $expire = 30;	
+			
 			else {
-				$profileID = (int) $mybb->input['uid'];
-				
-				$rowsperpage = (int) $mybb->settings['profilevisits_numresults'];
-				if (empty($rowsperpage)) $rowsperpage = 5; // prevents SQL errors if users put non-numeric values in for this setting
-
 				$query = $db->query("
 					SELECT username
 					FROM ".TABLE_PREFIX."users
 					WHERE uid = ". (int) $profileID);
 
 				while($data = $db->fetch_array($query)) {
-					$profile_username = $data['username']; // fetch username of profile
+					// fetch username of profile
+					$profile_username = $data['username']; 
 				} 
 				
 				$query = $db->query("
@@ -393,24 +419,23 @@
 					LEFT JOIN " . TABLE_PREFIX . "users u ON p.uid = u.uid
 					WHERE (p.profileID =". (int) $profileID.") ORDER BY VID DESC LIMIT ".(int) $rowsperpage
 				);
-					
-				$i = 0;
+				
 				while($data = $db->fetch_array($query)) {
+					$i++;
 					$username = $data['username'];
-					
 					$profile_link = build_profile_link($username, intval($mybb->input['uid']), '_blank', 'if(window.opener) { window.opener.location = this.href; return false; }');
 				
 					if($data['visit_date']) {
 						$active = my_date('relative', $data['visit_date']);
 					}
+					
 					else {
 						$active = $lang->profilevisits_never;
 					}
-
+					
 					$visitor['avatar'] = format_avatar(htmlspecialchars_uni($data['avatar']), $data['avatardimensions'], '44x44');
 					$altbg = alt_trow();
 					eval("\$visits .= \"".$templates->get("profilevisits_user")."\";");			
-					$i++;
 				} 
 				
 				if ($i == 0) {
@@ -421,20 +446,73 @@
 				if (profilevisits_permissions($mybb->settings['profilevisits_modgroups'], $mybb->user['usergroup'], $mybb->user['additionalgroups'])) {
 					$moderation = profilevisits_modlinks ($profileID);
 				}
-				else {
-					$moderation = null;
+								
+				$query = $db->simple_select("profilevisits_log", "COUNT(VID) AS visits", "profileID = ".(int) $profileID);
+				$numvisits = $db->fetch_field($query, "visits"); // fetch total results. 
+				
+				if ($numvisits > $mybb->settings['profilevisits_numresults']) {
+					$onclick = "$.get('xmlhttp.php?lastid={$i}&uid={$profileID}', function(data){ $('tr.profileVisit:last').after(data); }); $('#button_showmore').hide();";
+					$loadmore = "<span id='button_showmore'>[<a href='javascript:;' onclick=\"{$onclick}\">{$lang->profilevisits_load_more}</a>]</span>"; 
 				}
-				
-				$expire = my_number_format((int) $mybb->settings['profilevisits_expire']);
-				if(empty($expire)) $expire = 30; // default to 30 days
-				$interval = $lang->profilevisits_interval_last.$expire.$lang->profilevisits_interval_days;
-				
+			
 				eval("\$profilevisits = \"".$templates->get("profilevisits_popup", 1, 0)."\";");
 				echo $profilevisits;
 			}	
 			exit;				
 		}
 	}
+	
+	
+	function profilevisits_ajax () {
+		// loads more visits via ajax
+		global $db, $mybb, $templates, $lang;
+		$lang->load("profilevisits");
+		
+		if ((empty($mybb->input['lastid'])) || (empty($mybb->input['uid']))) {
+			return; // invalid request
+		}
+		
+		else {
+			
+			$rows = (((int) $mybb->settings['profilevisits_numresults']) * 5);
+			if (empty($rows)) $rows = 25; // prevents SQL errors if users put non-numeric values in for this setting
+			
+			$profileID = (int) $mybb->input['uid'];
+			$offset = (int) $mybb->input['lastid'];
+
+			$query = $db->query("
+				SELECT p.uid, p.VID, p.date AS visit_date, u.uid, u.avatar, u.username, u.avatardimensions
+				FROM ".TABLE_PREFIX."profilevisits_log p
+				LEFT JOIN " . TABLE_PREFIX . "users u ON p.uid = u.uid
+				WHERE (p.profileID =". (int) $profileID.") ORDER BY VID DESC LIMIT {$offset}, {$rows}"
+			);
+		
+			while($data = $db->fetch_array($query)) {
+				$username = $data['username'];	
+				
+				$profile_link = build_profile_link($username, intval($mybb->input['uid']), '_blank', 'if(window.opener) { window.opener.location = this.href; return false; }');
+			
+				if($data['visit_date']) {
+					$active = my_date('relative', $data['visit_date']);
+				}
+				else {
+					$active = $lang->profilevisits_never;
+				}
+				
+				$visitor['avatar'] = format_avatar(htmlspecialchars_uni($data['avatar']), $data['avatardimensions'], '44x44');
+				$altbg = alt_trow();
+				
+				eval("\$visits .= \"".$templates->get("profilevisits_user")."\";");	
+			} 	
+			echo $visits;
+			
+			if (!isset($username)) {
+				$altbg = alt_trow();
+				echo "<tr><td colspan='2' class='{$altbg}'><div class='pm_alert' style='text-align: center;'>{$lang->profilevisits_no_results}</div></td></tr>"; // no results to display. 
+				return;
+			}		
+		}
+	}	
 	
 	
 	function profilevisits_permissions ($allowed, $usergroup, $additionalgroups) {
@@ -462,6 +540,7 @@
 		}
 		return false;
 	}
+	
 	
 	function profilevisits_verify_permissions ($allowed, $usergroup, $additionalgroups) {
 		// verify permissions, generate error page on fail. 
@@ -505,7 +584,7 @@
 				else {
 					// reset counter
 					$array = array(
-						"profilevisits" => 0,
+						"profilevisits" => 0
 					);
 					$db->update_query("users", $array, "uid = ". (int)$uid);
 					$db->delete_query("profilevisits_cache", "profileID = ".(int)$uid);
@@ -527,6 +606,7 @@
 			}
 		}
 	}
+
 
 	function profilevisits_log_own ($profileID) {
 		// returns true if profilevisits logs visits to own profiles
@@ -559,7 +639,6 @@
 		$cache_cutoff = (time() - ((int) $mybb->settings['profilevisits_cachetime'] * 60)); 
 		$db->delete_query("profilevisits_cache", "date < ".(int) $cache_cutoff.""); // delete old cached results
 	}
-	
 	
 	
 	function profilevisits_cleanup_visits ($args) {
