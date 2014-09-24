@@ -3,7 +3,7 @@ NOTICE: THIS PLUGIN IS A BETA RELEASE, AND IS NOT GUARANTEED TO WORK PROPERLY ON
 Latest Visitors on Profiles is a simple plugin for MyBB 1.8 that adds a profile visits counter and a latest visits log to all profiles on the forum. 
 
 MyBB version: 1.8.X
-Plugin version: 1.0 beta 2
+Plugin version: 1.0 beta 3
 Author: Darth-Apple
 License: GNU GPL, version 3. 
 
