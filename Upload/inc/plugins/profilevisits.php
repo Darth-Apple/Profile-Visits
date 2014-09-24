@@ -150,7 +150,7 @@
 			'gid' => $group['gid']
 		);
 		
-			$settings[] = array(
+		$settings[] = array(
 			'name' => 'profilevisits_enable_count',
 			'title' => $db->escape_string($lang->profilevisits_enable_count),
 			'description' => $db->escape_string($lang->profilevisits_enable_count_desc),
@@ -474,8 +474,8 @@
 		
 		else {
 			
-			$rows = (((int) $mybb->settings['profilevisits_numresults']) * 5);
-			if (empty($rows)) $rows = 25; // prevents SQL errors if users put non-numeric values in for this setting
+			$rows = (((int) $mybb->settings['profilevisits_numresults']) * 2);
+			if ($rows < 25) $rows = 25; // prevents SQL errors if users put non-numeric values in for this setting
 			
 			$profileID = (int) $mybb->input['uid'];
 			$offset = (int) $mybb->input['lastid'];
