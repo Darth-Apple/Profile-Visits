@@ -227,11 +227,13 @@
 			'gid' => $group['gid']
 		);				
 		
+		// insert the settings
 		foreach($settings as $array => $setting) {
-			$db->insert_query("settings", $setting);
+			$db->insert_query("settings", $setting); // lots of queries
 		}
 		rebuild_settings();
 	}
+	
 	
 	function profilevisits_uninstall () {
 		global $db;
@@ -258,6 +260,7 @@
 		rebuild_settings();	
 	}
 	
+	
 	function profilevisits_is_installed () {
 		global $db;
 		if($db->table_exists('profilevisits_log')) {
@@ -278,10 +281,9 @@
 	}
 	
 	
-	/*
-	 * Parse profile visits on user profiles. 
-	 */ 
+
 	function profilevisits_parse () {
+		// parses profile visits and generates logs on user profiles. 
 		global $templates, $db, $mybb, $lang, $profilevisits, $bg_color, $session, $memprofile;
 		$lang->load("profilevisits");
 		
@@ -366,14 +368,16 @@
 		eval("\$profilevisits = \"".$templates->get("member_profilevisits")."\";"); 
 	} 
 
-	
+
 	function profilevisits_popup () {
+		// generates the popup to display the latest results on profiles. 
 		global $lang, $templates, $db, $mybb, $session, $theme;
 			
 		if ($mybb->input['action'] == "profilevisits") {
 			
 			$lang->load("profilevisits");
-			define("NO_ONLINE", 1);				
+			define("NO_ONLINE", 1);		
+			$altrow = new profilevisits_altrow();		
 			
 			if ((empty($mybb->input['uid'])) || ($mybb->request_method != "get")) {
 				error($lang->profilevisits_invalid_request); // invalid request, generate error page. 
@@ -425,12 +429,12 @@
 					$visitor['avatar'] = format_avatar(htmlspecialchars_uni($data['avatar']), $data['avatardimensions'], '44x44');
 					$active = profilevisits_get_last_active ($data['visit_date']);
 					
-					$altbg = alt_trow();
+					$altbg = $altrow->alternate();
 					eval("\$visits .= \"".$templates->get("profilevisits_user")."\";");			
 				} 
 				
 				if ($i == 0) {
-					$altbg = alt_trow();
+					$altbg = $altrow->alternate();
 					$visits = "<tr><td colspan='2' class='{$altbg}'>{$lang->profilevisits_nothing}</td></tr>";
 				}
 				
@@ -458,7 +462,8 @@
 						$viewing = $numvisits; 
 					}
 					
-					$onclick = "$.get('xmlhttp.php?action=profilevisits_ajax&lastid={$i}&uid={$profileID}', function(data){ $('tr.profileVisit:last').after(data); }); document.getElementById('button_showmore').innerHTML = '[{$lang->profilevisits_viewing} {$viewing}]';";
+					$lastrow = $altrow->row;
+					$onclick = "$.get('xmlhttp.php?action=profilevisits_ajax&lastid={$i}&uid={$profileID}&trow={$lastrow}', function(data){ $('tr.profileVisit:last').after(data); }); document.getElementById('button_showmore').innerHTML = '[{$lang->profilevisits_viewing} {$viewing}]';";
 					$loadmore = "<span id='button_showmore'>[<a href='javascript:;' onclick=\"{$onclick}\">{$lang->profilevisits_load_more}</a>]</span>"; 
 				}
 			
@@ -469,9 +474,9 @@
 		}
 	}
 	
-	
+
 	function profilevisits_ajax () {
-		// loads more visits via ajax
+		// loads additional results via ajax
 		global $db, $mybb, $templates, $lang;
 		
 		$profileID = (int) $mybb->input['uid'];
@@ -483,7 +488,8 @@
 		
 		else {
 			$lang->load("profilevisits");
-			define("NO_ONLINE", 1);			
+			define("NO_ONLINE", 1);		
+			$altrow = new profilevisits_altrow($mybb->input['trow']); // start the trow alternation taking the previous result loaded into account. 	
 			
 			$visits = null;
 			$invisible_condition = null;		
@@ -515,14 +521,14 @@
 				$visitor['avatar'] = format_avatar(htmlspecialchars_uni($data['avatar']), $data['avatardimensions'], '44x44');
 				$active = profilevisits_get_last_active ($data['visit_date']);
 				
-				$altbg = alt_trow();
+				$altbg = $altrow->alternate();
 				eval("\$visits .= \"".$templates->get("profilevisits_user")."\";");	
 			} 	
 			
 			echo $visits;
 			
 			if ($i == 0) {
-				$altbg = alt_trow();
+				$altbg = $altrow->alternate();
 				echo "<tr><td colspan='2' class='{$altbg}'><div style='text-align: center;'><em>{$lang->profilevisits_no_results}</em></div></td></tr>"; // no results to display. 
 				return;
 			}		
@@ -531,7 +537,9 @@
 	
 	
 	function profilevisits_permissions ($allowed, $usergroup, $additionalgroups) {
+		// verifies user permissions. Usergroups should be passed in the string format with a comma between each group ID (e.g. "2,3,4").
 		global $mybb; 
+		
 		if (empty($allowed)) {
 			return false; // no need to check for permissions if no groups are allowed. 
 		}
@@ -558,7 +566,7 @@
 	
 	
 	function profilevisits_verify_permissions ($allowed, $usergroup, $additionalgroups) {
-		// verify permissions, generate error page on fail. 
+		// verifies permissions, generates an error on fail. 
 		if (profilevisits_permissions($allowed, $usergroup, $additionalgroups)) {
 			return true; 
 		}
@@ -567,8 +575,9 @@
 		}
 	}
 	
-	
+
 	function profilevisits_modlinks ($user) {
+		// generates moderator control links
 		global $mybb, $lang;
 		$lang->load("profilevisits");
 		$uid = (int) $user;
@@ -582,7 +591,9 @@
 		return $moderation; 
 	}
 	
+
 	function profilevisits_moderation () {
+		// processes moderator actions
 		global $mybb, $db, $lang;
 		$lang->load("profilevisits");
 		
@@ -592,16 +603,15 @@
 			
 			if ($mybb->input['action'] == "profilevisits_clearcounter") {
 				$uid = (int) $mybb->input['uid'];
+				
 				if (empty($uid)) {
-					// no UID defined
-					error($lang->profilevisits_no_uid);
+					error($lang->profilevisits_no_uid); // no UID defined
 				}
 				else {
-					// reset counter
 					$array = array(
 						"profilevisits" => 0
 					);
-					$db->update_query("users", $array, "uid = ". (int)$uid);
+					$db->update_query("users", $array, "uid = ". (int)$uid); // reset counter
 					$db->delete_query("profilevisits_cache", "profileID = ".(int)$uid);
 					redirect("member.php?action=profile&uid=".(int) $uid, $lang->profilevisits_clear_success);		
 				}
@@ -624,55 +634,44 @@
 
 
 	function profilevisits_log_own ($profileID) {
-		// returns true if profilevisits logs visits to own profiles
+		// will return true if users are allowed to be logged on their own profiles. 
 		global $mybb;
 		if ((intval($profileID) == $mybb->user['uid']) && ($mybb->settings['profilevisits_log_own'] == 0)) {
 			return false;
 		}
 		return true;
 	}
-
-
-	function profilevisits_parse_invisible ($invisible) {
-		// this function checks whether a user can be logged based on the plugin's "honor_hidden" setting. If this setting is enabled, invisible users won't be logged. 
-		global $mybb;	
-		if (!empty($mybb->user['uid'])) {
-			if ((intval($invisible) == 1) && ($mybb->settings['profilevisits_honor_invisible'] == 1)) {
-				return false; 
-			}
-			else {
-				return true;
-			}
-		}
-		return true; 
-	}	
 	
+
 	function profilevisits_get_ajax_rows ($total = false) {
-			// returns the number of rows to generate on an ajax request
-			global $mybb;
-			
-			$rows = (((int) $mybb->settings['profilevisits_numresults']) * 2);
-			if ($rows < 10) $rows = 10; // prevents SQL errors if users put non-numeric values in for this setting
-			
-			if ($total == false) {
-				return $rows; // return results loaded by ajax
-			}
-			else {
-				return ($mybb->settings['profilevisits_numresults'] + $rows); // return total results displayed
-			}
+		// returns the number of rows to generate on an ajax request. 
+		global $mybb;
+		
+		$rows = (((int) $mybb->settings['profilevisits_numresults']) * 2);
+		if ($rows < 2) $rows = 10; // prevents SQL errors if users put non-numeric values in for this setting
+		
+		if ($total == false) {
+			return $rows; // return results loaded by ajax
+		}
+		else {
+			return ($mybb->settings['profilevisits_numresults'] + $rows); // return total results displayed
+		}
 	}
-	
+
+
 	function profilevisits_get_popup_rows () {
-			// returns the number of rows to generate on a popup request
-			global $mybb;
-			$rows = (int) $mybb->settings['profilevisits_numresults'];
-			if (empty($rows)) {
-				return 5;
-			}
-			return $rows;
+		// Returns the number of rows to generate on a popup request. 
+		global $mybb;
+		$rows = (int) $mybb->settings['profilevisits_numresults'];
+		if (empty($rows)) {
+			return 5;
+		}
+		return $rows;
 	}	
 	
+
 	function profilevisits_get_last_active ($lastactive) {
+		// formats the time for the last active date on user profiles. 
 		global $lang;
 		
 		if($lastactive) {
@@ -685,10 +684,9 @@
 		}
 	}
 
-	/*
-	 * This is necessary to remove confusing "unknown location" links in the online users list. 
-	 */ 
+
 	function profilevisits_online(&$plugin_array) {
+		// required to remove the "unknown location" from the online users list. 
 		global $lang; 
 		$lang->load("profilevisits");
 		if (my_strpos($plugin_array['user_activity']['location'], 'misc.php?action=profilevisits')) {
@@ -698,7 +696,7 @@
 	
 
 	function profilevisits_cleanup_cache ($args) {
-		// deletes expired cache results
+		// deletes expired cache results. 
 		global $db, $mybb;		
 		$cache_cutoff = (time() - ((int) $mybb->settings['profilevisits_cachetime'] * 60)); 
 		$db->delete_query("profilevisits_cache", "date < ".(int) $cache_cutoff.""); // delete old cached results
@@ -706,7 +704,7 @@
 	
 	
 	function profilevisits_cleanup_visits ($args) {
-		// Deletes expired logs
+		// Deletes expired visits from the database to manage database space. 
 		global $db, $mybb;		
 
 		$expire = (int) $mybb->settings['profilevisits_expire'];
@@ -715,5 +713,28 @@
 		$expire = (time() - ($expire * 60 * 60 * 24)); // convert to seconds
 		
 		$db->delete_query("profilevisits_log", "date < ".(int) $expire.""); 
-		// Note: This is necessary because otherwise, the visits table would grow indefinitely large. There are technically better ways to handle this, but the current method of data removal is simple and at least prevents the table from growing unreasonably large. 
+	}
+	
+	
+	// this class essentially replicates the functionality of MyBB's alt_trow() function, but allows the alternation to start at any point. This is useful in resolving alt_trow issues when more results are loaded via ajax. 
+	class profilevisits_altrow {
+		public $row;
+		
+		function __construct ($prev="trow2") {
+			if ($prev !== "trow1" && $prev !== "trow2") {
+				$prev = "trow2"; // reset to default if invalid value is passed. 
+			}
+			$this->row = $prev;
+		}
+		
+		function alternate() {
+			if ($this->row == "trow2") {
+				$this->row = "trow1";				
+				return "trow1";
+			}
+			else {
+				$this->row = "trow2";
+				return "trow2";
+			}
+		}
 	}
