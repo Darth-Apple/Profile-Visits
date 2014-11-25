@@ -507,7 +507,7 @@
 				WHERE (p.profileID = ". (int) $profileID.") {$invisible_condition} ORDER BY p.VID DESC LIMIT {$offset}, {$rows}"
 			);
 			
-			$i = 0;
+			$i = $offset;
 			
 			while($data = $db->fetch_array($query)) {
 				$i++;
@@ -527,7 +527,7 @@
 			
 			echo $visits;
 			
-			if ($i == 0) {
+			if ($i == $offset) {
 				$altbg = $altrow->alternate();
 				echo "<tr><td colspan='2' class='{$altbg}'><div style='text-align: center;'><em>{$lang->profilevisits_no_results}</em></div></td></tr>"; // no results to display. 
 				return;
