@@ -20,7 +20,6 @@
 	Plugin version: 1.0 beta 3
 	Author: Darth-Apple
 	License: GNU GPL, version 3
-	*  
      */
  
 	if(!defined("IN_MYBB")) {
