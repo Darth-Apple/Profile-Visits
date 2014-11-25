@@ -289,9 +289,10 @@
 	}
 	
 	
-	
+	/*
+	 * Parse profile visits on user profiles. 
+	 */ 
 	function profilevisits_parse () {
-		// parse profile visits
 		global $templates, $db, $mybb, $lang, $profilevisits, $bg_color, $session, $memprofile;
 		$lang->load("profilevisits");
 		
@@ -308,8 +309,6 @@
 		else {
 			$profileID = (int) $mybb->user['uid']; // user is viewing own profile. No need to adjust visits count. 
 		}
-		
-		// $parse_invisible = profilevisits_parse_invisible ($mybb->user['invisible']);
 		
 		if ((profilevisits_permissions($mybb->settings['profilevisits_groups'], $mybb->user['usergroup'], $mybb->user['additionalgroups'])) && (profilevisits_log_own($profileID))) {
 			if ($mybb->settings['profilevisits_enable_count'] == 1) {
@@ -328,8 +327,8 @@
 					$profile_increment = 1; // The current view count is loaded from $memprofile, which is parsed before this function is called. This allows Profile Visits to record the actual view count including the current visit. 
 					
 					$array = array(
-						"date" => time(),
-						"profileID" => (int)$profileID,
+						"date" => intval(time()),
+						"profileID" => (int) $profileID,
 						"IP" => $db->escape_binary($session->packedip),
 						"uid" => (int) $mybb->user['uid']
 					);
@@ -352,7 +351,7 @@
 		
 			if ((($result['uid'] != $mybb->user['uid'])) && ($mybb->user['uid'] != 0)) {
 				$array = array(
-					"date" => time(),
+					"date" => intval(time()),
 					"profileID" => (int)$profileID,
 					"uid" => (int) $mybb->user['uid']
 				);
@@ -431,7 +430,7 @@
 					if($data['invisible'] == 1) $invisible_mark = "*";
 					
 					$username = format_name($data['username'], $data['usergroup'], $data['displaygroup']);
-					$profile_link = build_profile_link($username, intval($mybb->input['uid']), '_blank', 'if(window.opener) { window.opener.location = this.href; return false; }');
+					$profile_link = build_profile_link($username, intval($data['uid']), '_blank', 'if(window.opener) { window.opener.location = this.href; return false; }');
 					$profile_link .= $invisible_mark;
 					
 					$visitor['avatar'] = format_avatar(htmlspecialchars_uni($data['avatar']), $data['avatardimensions'], '44x44');
@@ -673,7 +672,7 @@
 	}
 	
 	function profilevisits_get_popup_rows () {
-			// returns the number of rows to generate on a pupup request
+			// returns the number of rows to generate on a popup request
 			global $mybb;
 			$rows = (int) $mybb->settings['profilevisits_numresults'];
 			if (empty($rows)) {
@@ -716,4 +715,3 @@
 		$db->delete_query("profilevisits_log", "date < ".(int) $expire.""); 
 		// Note: This is necessary because otherwise, the visits table would grow indefinitely large. There are technically better ways to handle this, but the current method of data removal is simple and at least prevents the table from growing unreasonably large. 
 	}
-
