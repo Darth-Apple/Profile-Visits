@@ -203,19 +203,7 @@
 			'disporder' => 6,
 			'isdefault' => 0,
 			'gid' => $group['gid']
-		);		
-		
-		/*			
-		$settings[] = array(
-			'name' => 'profilevisits_honor_invisible',
-			'title' => $db->escape_string($lang->profilevisits_honor_hidden_users),
-			'description' => $db->escape_string($lang->profilevisits_honor_hidden_users_desc),
-			'optionscode' => 'yesno',
-			'value' => '0',
-			'disporder' => 7,
-			'isdefault' => 0,			
-			'gid' => $group['gid']
-		);				*/					
+		);						
 		
 		$settings[] = array(
 			'name' => 'profilevisits_cachetime',
@@ -361,10 +349,10 @@
 			}
 			else if ($mybb->user['uid'] != 0) {
 				$array = array(
-					"date" => time()
+					"date" => intval(time())
 				);
 			
-				$db->update_query("profilevisits_log", $array, "VID = ". (int)$vid);						
+				$db->update_query("profilevisits_log", $array, "VID = ". (int) $vid);						
 			}			
 		}
 		
@@ -465,7 +453,7 @@
 				
 				if ($numvisits > $mybb->settings['profilevisits_numresults']) {
 					$viewing = profilevisits_get_ajax_rows (true);
-					
+										
 					if($viewing > $numvisits) {
 						$viewing = $numvisits; 
 					}
@@ -504,13 +492,13 @@
 				$invisible_condition = " AND u.invisible = 0 "; // don't fetch invisible results if user does not have permission to view invisible users
 			}
 				
-			$rows = profilevisits_get_ajax_rows (false);
+			$rows = (int) profilevisits_get_ajax_rows (false);
 				
 			$query = $db->query("
 				SELECT p.uid, p.date AS visit_date, u.uid, u.avatar, u.avatardimensions, u.username, u.invisible, u.usergroup, u.displaygroup
 				FROM ".TABLE_PREFIX."profilevisits_log p
 				LEFT JOIN " . TABLE_PREFIX . "users u ON p.uid = u.uid
-				WHERE (p.profileID = ". (int) $profileID.") {$invisible_condition} ORDER BY p.VID DESC LIMIT {$offset}, {$offset}"
+				WHERE (p.profileID = ". (int) $profileID.") {$invisible_condition} ORDER BY p.VID DESC LIMIT {$offset}, {$rows}"
 			);
 			
 			$i = 0;
