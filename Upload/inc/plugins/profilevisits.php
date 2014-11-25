@@ -17,12 +17,11 @@
     along with Profile Visits.  If not, see <http://www.gnu.org/licenses/>.
     
     MyBB version: 1.8.X
-	Plugin version: 1.0 beta 3
+	Plugin version: 1.0 beta 4
 	Author: Darth-Apple
 	License: GNU GPL, version 3
-	*  
      */
- 
+    
 	if(!defined("IN_MYBB")) {
 	    die("Hacking Attempt.");
 	}	
@@ -34,6 +33,7 @@
 		$plugins->add_hook('task_hourlycleanup', 'profilevisits_cleanup_cache'); // clean cache
 		$plugins->add_hook('task_dailycleanup_end', 'profilevisits_cleanup_visits'); // clear expired visits
 		$plugins->add_hook('xmlhttp', 'profilevisits_ajax');
+		$plugins->add_hook("build_friendly_wol_location_end", "profilevisits_online");
 	}
 	
 	function profilevisits_info() {
@@ -138,6 +138,7 @@
 		$group['gid'] = $db->insert_query("settinggroups", $setting_group); // inserts new group for settings into the database. 
 		
 		$settings = array();
+		
 		$settings[] = array(
 			'name' => 'profilevisits_enabled',
 			'title' => $db->escape_string($lang->profilevisits_enable),
@@ -358,7 +359,7 @@
 					
 				$db->insert_query("profilevisits_log", $array);
 			}
-			else {
+			else if ($mybb->user['uid'] != 0) {
 				$array = array(
 					"date" => time()
 				);
@@ -380,11 +381,11 @@
 	
 	function profilevisits_popup () {
 		global $lang, $templates, $db, $mybb, $session, $theme;
-		define("NO_ONLINE", 1);	
 			
 		if ($mybb->input['action'] == "profilevisits") {
 			
 			$lang->load("profilevisits");
+			define("NO_ONLINE", 1);				
 			
 			if ((empty($mybb->input['uid'])) || ($mybb->request_method != "get")) {
 				error($lang->profilevisits_invalid_request); // invalid request, generate error page. 
@@ -469,7 +470,7 @@
 						$viewing = $numvisits; 
 					}
 					
-					$onclick = "$.get('xmlhttp.php?lastid={$i}&uid={$profileID}', function(data){ $('tr.profileVisit:last').after(data); }); document.getElementById('button_showmore').innerHTML = '[{$lang->profilevisits_viewing} {$viewing}]';";
+					$onclick = "$.get('xmlhttp.php?action=profilevisits_ajax&lastid={$i}&uid={$profileID}', function(data){ $('tr.profileVisit:last').after(data); }); document.getElementById('button_showmore').innerHTML = '[{$lang->profilevisits_viewing} {$viewing}]';";
 					$loadmore = "<span id='button_showmore'>[<a href='javascript:;' onclick=\"{$onclick}\">{$lang->profilevisits_load_more}</a>]</span>"; 
 				}
 			
@@ -484,16 +485,18 @@
 	function profilevisits_ajax () {
 		// loads more visits via ajax
 		global $db, $mybb, $templates, $lang;
-		$lang->load("profilevisits");
 		
 		$profileID = (int) $mybb->input['uid'];
 		$offset = (int) $mybb->input['lastid'];	
 		
-		if ((empty($mybb->input['lastid'])) || (empty($mybb->input['uid']))) {
+		if ((empty($mybb->input['lastid'])) || (empty($mybb->input['uid'])) || ($mybb->input['action'] != "profilevisits_ajax")) {
 			return; // invalid request
 		}
 		
 		else {
+			$lang->load("profilevisits");
+			define("NO_ONLINE", 1);			
+			
 			$visits = null;
 			$invisible_condition = null;		
 
@@ -694,6 +697,17 @@
 		}
 	}
 
+	/*
+	 * This is necessary to remove confusing "unknown location" links in the online users list. 
+	 */ 
+	function profilevisits_online(&$plugin_array) {
+		global $lang; 
+		$lang->load("profilevisits");
+		if (my_strpos($plugin_array['user_activity']['location'], 'misc.php?action=profilevisits')) {
+			$plugin_array['location_name'] = $lang->viewing_profile_visits;
+		}
+	} 
+	
 
 	function profilevisits_cleanup_cache ($args) {
 		// deletes expired cache results

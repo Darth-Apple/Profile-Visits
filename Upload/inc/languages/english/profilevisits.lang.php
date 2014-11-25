@@ -19,3 +19,4 @@ $l['profilevisits_interval_last'] = "from last ";
 $l['profilevisits_load_more'] = "load more";
 $l['profilevisits_no_results'] = "No more visits to display. ";
 $l['profilevisits_viewing'] = "viewing last ";
+$l['viewing_profile_visits'] = "Viewing Profile Visitors";
