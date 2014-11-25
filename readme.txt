@@ -2,7 +2,7 @@ NOTICE: THIS PLUGIN IS A BETA RELEASE, AND IS NOT GUARANTEED TO WORK PROPERLY ON
 
 Latest Visitors on Profiles is a simple plugin for MyBB 1.8 that adds a profile visits counter and a latest visits log to all profiles on the forum. Additionally, this plugin supports usergroup based permissions, visit caching, jquery modal boxes, and other related enhancements.  
 
-MyBB version: 1.8.X
+MyBB version: 1.8.1 or newer
 Plugin version: 1.0 beta 4
 Author: Darth-Apple
 License: GNU GPL, version 3. 
@@ -20,6 +20,7 @@ Key features
 Installation: 
 	- Upload the contents of the /Upload folder to your MyBB root folder.
 	- Install and activate "Latest Visitors on Profiles" via the ACP. 
+	- Note that this plugin requires at least MyBB 1.8.1 in order to be compatible. If you are running 1.8.0, please upgrade to 1.8.1 before installing this plugin. 
 	
 Configuration & Notes: 
 	- Once this plugin is installed an activated, you may configure this plugin via ACP -> Configuration -> "Latest Visitors on Profile"

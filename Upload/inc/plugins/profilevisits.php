@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with Profile Visits.  If not, see <http://www.gnu.org/licenses/>.
     
-    MyBB version: 1.8.X
+    MyBB version: 1.8.1 or newer
 	Plugin version: 1.0 beta 4
 	Author: Darth-Apple
 	License: GNU GPL, version 3
@@ -176,7 +176,7 @@
 			'name' => 'profilevisits_numresults',
 			'title' => $db->escape_string($lang->profilevisits_numresults),
 			'description' => $db->escape_string($lang->profilevisits_numresults_desc),
-			'optionscode' => 'text',
+			'optionscode' => 'numeric',
 			'value' => '5',
 			'disporder' => 4,
 			'isdefault' => 0,
@@ -209,7 +209,7 @@
 			'name' => 'profilevisits_cachetime',
 			'title' => $db->escape_string($lang->profilevisits_cachetime),
 			'description' => $db->escape_string($lang->profilevisits_cachetime_desc),
-			'optionscode' => 'text',
+			'optionscode' => 'numeric',
 			'value' => '15',
 			'disporder' => 7,
 			'isdefault' => 0,
@@ -220,7 +220,7 @@
 			'name' => 'profilevisits_expire',
 			'title' => $db->escape_string($lang->profilevisits_expire),
 			'description' => $db->escape_string($lang->profilevisits_expire_desc),
-			'optionscode' => 'text',
+			'optionscode' => 'numeric',
 			'value' => '30',
 			'disporder' => 8,
 			'isdefault' => 0,
