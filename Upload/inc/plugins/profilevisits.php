@@ -17,11 +17,11 @@
     along with Profile Visits.  If not, see <http://www.gnu.org/licenses/>.
     
     MyBB version: 1.8.1 or newer
-	Plugin version: 1.0 beta 4
+	Plugin version: 1.0
 	Author: Darth-Apple
 	License: GNU GPL, version 3
      */
-    
+
 	if(!defined("IN_MYBB")) {
 	    die("Hacking Attempt.");
 	}	
@@ -45,6 +45,7 @@
 			'website'		=> 'http://community.mybb.com',
 			'author'		=> 'Darth Apple',
 			'authorsite'	=> 'http://www.makestation.net',
+			'codename'		=> 'profilevisits',
 			'version'		=> '1.0',
 			"compatibility"	=> "18*"
 		);
@@ -298,7 +299,7 @@
 		}
 		
 		else {
-			$profileID = (int) $mybb->user['uid']; // user is viewing own profile. No need to adjust visits count. 
+			$profileID = (int) $mybb->user['uid']; // user is viewing own profile. 
 		}
 		
 		if ((profilevisits_permissions($mybb->settings['profilevisits_groups'], $mybb->user['usergroup'], $mybb->user['additionalgroups'])) && (profilevisits_log_own($profileID))) {
@@ -399,7 +400,7 @@
 					WHERE uid = ". (int) $profileID);
 
 				while($data = $db->fetch_array($query)) {
-					$profile_username = $data['username']; // fetch username of profile
+					$profile_username = htmlspecialchars_uni($data['username']); // fetch username of profile
 				} 
 				
 				$invisible_condition = null;
@@ -611,8 +612,8 @@
 					$array = array(
 						"profilevisits" => 0
 					);
-					$db->update_query("users", $array, "uid = ". (int)$uid); // reset counter
-					$db->delete_query("profilevisits_cache", "profileID = ".(int)$uid);
+					$db->update_query("users", $array, "uid = ". (int) $uid); // reset counter
+					$db->delete_query("profilevisits_cache", "profileID = ".(int) $uid);
 					redirect("member.php?action=profile&uid=".(int) $uid, $lang->profilevisits_clear_success);		
 				}
 			}
@@ -625,7 +626,7 @@
 				}
 				else {
 					// delete profile visits
-					$db->delete_query("profilevisits_log", "profileID = ".(int)$uid);
+					$db->delete_query("profilevisits_log", "profileID = ".(int) $uid);
 					redirect("member.php?action=profile&uid=".(int) $uid, $lang->profilevisits_delete_success);	
 				}
 			}
@@ -712,7 +713,7 @@
 		
 		$expire = (time() - ($expire * 60 * 60 * 24)); // convert to seconds
 		
-		$db->delete_query("profilevisits_log", "date < ".(int) $expire.""); 
+		$db->delete_query("profilevisits_log", "date < ".(int) $expire); 
 	}
 	
 	
