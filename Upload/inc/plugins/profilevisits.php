@@ -278,7 +278,6 @@
 	function profilevisits_deactivate () {
 		require MYBB_ROOT.'inc/adminfunctions_templates.php';
 		find_replace_templatesets('member_profile', '#\<!--\sProfileVisits\s--\>(.+)\<!--\s/ProfileVisits\s--\>#is', '', 0);
-	
 	}
 	
 	
