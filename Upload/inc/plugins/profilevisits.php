@@ -365,7 +365,6 @@
 
 		$view_latest = '<a href="#" onclick="MyBB.popupWindow(\'misc.php?action=profilevisits&uid='.(int) $profileID.'\', null, true); return false;">'.$lang->profilevisits_viewlatest.'</a>';
 		
-		
 		eval("\$profilevisits = \"".$templates->get("member_profilevisits")."\";"); 
 	} 
 
